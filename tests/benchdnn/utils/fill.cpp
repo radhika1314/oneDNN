@@ -137,16 +137,25 @@ const fill_cfg_t &get_perf_fill_cfg(dnnl_data_type_t dt) {
 int fill_scales(const attr_t &attr, int arg, dnn_mem_t &mem_dt,
         dnn_mem_t &mem_fp, res_t *res) {
     const auto &e = attr.scales.get(arg);
-    return fill_scales(e, mem_dt, mem_fp, res);
+    return fill_scales(e, arg, mem_dt, mem_fp, res);
 }
 
-int fill_scales(const attr_t::arg_scales_t::entry_t &e, dnn_mem_t &mem_dt,
-        dnn_mem_t &mem_fp, res_t *res) {
+int fill_scales(const attr_t::arg_scales_t::entry_t &e, int arg,
+        dnn_mem_t &mem_dt, dnn_mem_t &mem_fp, res_t *res) {
     const auto nelems = mem_fp.nelems();
     if (nelems == 0) return OK;
 
-    // Dynamic scales must not be filled.
-    if (e.is_dynamic()) return OK;
+    // Dynamic scales (MX and dynamic_fp) on DST must not be filled: they are
+    // computed by the library from the destination values, and the reference
+    // computes its own copy, so seeding them here would be overwritten at
+    // best and mismatch at worst.
+    //
+    // On SRC and WEIGHTS the very same policies describe ordinary *input*
+    // scales that both the library and the reference read, so they do have to
+    // be filled. Skipping them leaves the buffers at the prefill poison
+    // (`dnnl_mem_default_value`, 0xFF), which is a NaN in every fp8 type,
+    // including e8m0 -- an MXFP8 problem would then compute NaN everywhere.
+    if (e.is_dynamic() && arg == DNNL_ARG_DST) return OK;
 
     if (mem_dt) { assert(mem_dt.nelems() == mem_fp.nelems()); }
 

@@ -85,8 +85,12 @@ int fill_dropout_mask(dnn_mem_t &mem_dt, dnn_mem_t &mem_fp);
 
 int fill_scales(const attr_t &attr, int arg, dnn_mem_t &mem_dt,
         dnn_mem_t &mem_fp, res_t *res);
-int fill_scales(const attr_t::arg_scales_t::entry_t &e, dnn_mem_t &mem_dt,
-        dnn_mem_t &mem_fp, res_t *res);
+// `arg` is the scales argument (DNNL_ARG_SRC / _WEIGHTS / _DST) without the
+// DNNL_ARG_ATTR_SCALES bit. It is needed because dynamic (MX / dynamic_fp)
+// scales are an output of the library on DST, but a regular input on SRC and
+// WEIGHTS, see the comment in the definition.
+int fill_scales(const attr_t::arg_scales_t::entry_t &e, int arg,
+        dnn_mem_t &mem_dt, dnn_mem_t &mem_fp, res_t *res);
 
 int fill_zero_points(const attr_t &attr, int arg, dnn_mem_t &mem_dt,
         dnn_mem_t &mem_fp, res_t *res);

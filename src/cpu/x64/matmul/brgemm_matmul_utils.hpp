@@ -211,6 +211,13 @@ struct brgemm_matmul_conf_t {
     dim_t buffer_a_m_stride;
     dim_t buffer_a_per_thread_sz;
 
+    // Strides of the repacked MXFP8 A scales buffer. The slab of one
+    // (M_blk, K_blk) block is `buffer_a_scales_k_brgm_stride` bytes; see the
+    // layout comment on jit_brgemm_matmul_copy_a_scales_impl_t.
+    dim_t buffer_a_scales_k_brgm_stride;
+    dim_t buffer_a_scales_m_brgm_stride;
+    dim_t buffer_a_scales_per_thread_sz;
+
     dim_t buffer_b_k_stride;
     dim_t buffer_b_gb_stride;
     dim_t buffer_b_k_brg_stride;
@@ -249,6 +256,9 @@ struct brgemm_matmul_conf_t {
     bool is_xf16_fp8 = false;
     bool is_int4_weights = false;
     bool is_f4_via_convert = false;
+    // MXFP8: fp8 x fp8 with e8m0 block scales on both SRC and WEIGHTS,
+    // computed natively by the ACE outer product.
+    bool is_mxfp8 = false;
     bool with_int8_grouped_quantization = false;
     // Enables the driver-side per-(M, N) f32 compensation tile that captures
     // the symmetric src/wei zero-point + 128-shift correction in the grouped
