@@ -76,7 +76,7 @@ step. They are omitted above for clarity.
 * **Emitter.** The only part aware of the ISA and data types, because it produces
   the code. It walks the allocated IR once and lowers each operation to
   instructions using the physical registers the allocator chose. Spilled values
-  are loaded into scratch registers around each use. There is one backend per ISA
+  are loaded into their temps around each use. There is one backend per ISA
   family (for example, AVX2\* and AVX-512\*), and a dispatch step selects the
   matching backend.
 * **Static data.** Some lowerings need constants, such as the AVX2 mask tables,

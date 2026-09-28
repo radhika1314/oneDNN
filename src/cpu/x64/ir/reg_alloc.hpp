@@ -39,8 +39,8 @@ namespace ir {
 //
 // - If `spilled == true`, the value is stored on the stack at byte offset
 //   `slot` in the spill area. In this case, `phys` is not used.
-//   Whenever the value is needed, the emitter loads it into a scratch
-//   register before using it.
+//   The emitter moves the value through a temp register at each operation
+//   that reads or writes it (see `temp_t`).
 struct assignment_t {
     bool spilled = false;
     int phys = -1;
@@ -52,8 +52,8 @@ struct assignment_t {
 // Indexed by `(int)reg_kind_t`: 2 for gpr, 3 for vec, and none for mask. The
 // gpr and vec limits are the most operands of that kind any operation has,
 // except `inject_postops`, which takes any number of accumulators. A spilled
-// operand past the limit gets no temp. Raise a limit when a new operation
-// needs more.
+// operand past the limit gets no temp. The emitter then fails the kernel.
+// Raise a limit when a new operation needs more.
 //
 // Masks are not spilled. A spilled value of a kind without temps could not be
 // used by any operation, so the allocator never spills such a value.
