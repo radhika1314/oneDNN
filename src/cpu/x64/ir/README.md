@@ -69,7 +69,10 @@ step. They are omitted above for clarity.
   backward data-flow over the IR's trivial control-flow graph, iterated to a fixed
   point so loop back-edges propagate. Linear scan then
   reduces each value to a single live interval and spills to the stack when the
-  active set outgrows the register file.
+  active set outgrows the register file. A spilled value still needs a register
+  while an operation reads or writes it, so the scan also gives each operation a
+  temp register for every spilled operand, up to a small limit per kind. Masks
+  get no temps and are never spilled.
 * **Emitter.** The only part aware of the ISA and data types, because it produces
   the code. It walks the allocated IR once and lowers each operation to
   instructions using the physical registers the allocator chose. Spilled values

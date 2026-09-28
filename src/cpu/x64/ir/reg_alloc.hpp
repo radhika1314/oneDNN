@@ -47,15 +47,44 @@ struct assignment_t {
     size_t slot = 0;
 };
 
+// Most temp registers one operation gets, per register kind.
+//
+// Indexed by `(int)reg_kind_t`: 2 for gpr, 3 for vec, and none for mask. The
+// gpr and vec limits are the most operands of that kind any operation has,
+// except `inject_postops`, which takes any number of accumulators. A spilled
+// operand past the limit gets no temp. Raise a limit when a new operation
+// needs more.
+//
+// Masks are not spilled. A spilled value of a kind without temps could not be
+// used by any operation, so the allocator never spills such a value.
+constexpr int max_temps_per_op[] = {2, 3, 0};
+
+// A register that holds a spilled value while one operation executes.
+//
+// The emitter reloads the value into it before the operation and stores it
+// back after. A spilled value thus needs a register only at the operations
+// that reference it. The allocator picks one that holds no other value live
+// at that operation.
+//
+//   vreg - the spilled virtual register
+//   phys - physical register that holds it during the operation
+struct temp_t {
+    vreg_t vreg;
+    int phys;
+};
+
 // The final allocation result.
 //
 // - `assignments` contains one `assignment_t` for each virtual register,
 //   indexed by virtual register id.
+// - `temps` contains, for each operation, one `temp_t` per distinct spilled
+//   operand, up to `max_temps_per_op` of each kind. It is indexed by operation.
 // - `frame_bytes` is the total amount of stack space needed for spilled
 //   values. The kernel reserves this space with a single `sub rsp`.
 // - `any_spill` is true if any virtual register was spilled to the stack.
 struct reg_alloc_result_t {
     std::vector<assignment_t> assignments;
+    std::vector<std::vector<temp_t>> temps;
     size_t frame_bytes = 0;
     bool any_spill = false;
 };
