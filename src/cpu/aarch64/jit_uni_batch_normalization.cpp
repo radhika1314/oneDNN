@@ -2254,9 +2254,15 @@ status_t jit_uni_batch_normalization_fwd_t<isa>::pd_t::init(
     VDISPATCH_BNORM(src_tag != format_tag::undef, VERBOSE_UNSUPPORTED_TAG);
 
     if (is_fwd() ? with_relu_post_op(is_training()) || fuse_norm_relu()
-                 : fuse_norm_relu())
-        if (!(is_superset(isa, sve) && simd_bytes(isa) == 64))
-            return status::unimplemented; // TODO
+                 : fuse_norm_relu()) {
+        const bool is_sve_512 = is_superset(isa, sve) && simd_bytes(isa) == 64;
+
+        // The fusion/post-op path requires a workspace when training which is
+        // only fully supported for SVE-512. For other SVE vector-lengths we
+        // need to check that we are only doing inference.
+        VDISPATCH_BNORM(is_sve_512 || (is_superset(isa, sve) && !is_training()),
+                "relu fusion/post-op is not supported for this configuration");
+    }
 
     if (is_training() && fuse_norm_relu()) {
         if (!is_superset(isa, sve)) return status::unimplemented;
